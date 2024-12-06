@@ -31,12 +31,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -67,11 +63,8 @@ class CameraService {
         }
         val configuration = LocalConfiguration.current
         val screenWidth = configuration.screenWidthDp
-        val screenHeight = configuration.screenHeightDp
-        val density = LocalDensity.current.density
         val screenWidthWithPadding = screenWidth - (screenWidth / 20)
         val buttonEnabled by photoViewModel.buttonEnabled.collectAsState()
-        var boxPosition: IntOffset? = null
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -99,15 +92,6 @@ class CameraService {
                         .aspectRatio(86f / 56f)
                         .border(2.dp, Color.White)
                         .align(Alignment.Center)
-                        .onGloballyPositioned { coordinates ->
-                            val position = coordinates.positionInWindow()
-                            //   println("pozisyon orjinal -> x : ${position.x} ; y : ${position.y}")
-                            boxPosition = IntOffset(
-                                (position.x / density).toInt(),
-                                (position.y / density).toInt()
-                            )
-                            println("pozisyon yuvarlanmış -> x : ${boxPosition!!.x} ; y : ${boxPosition!!.y}")
-                        }
                 ) {}
             }
 
@@ -120,7 +104,7 @@ class CameraService {
 //            Box(
 //                Modifier
 //                    .size(10.dp)
-//                    .offset(9.dp, 332.dp)
+//                    .offset(6.dp, 310.dp)
 //                    .background(Color.Red)
 //            ) {}
 
@@ -133,10 +117,7 @@ class CameraService {
                             context,
                             navController,
                             photoViewModel,
-                            boxPosition,
-                            screenWidthWithPadding,
-
-                            )
+                        )
                         photoViewModel.setButtonDisable()
                     },
                     modifier = Modifier
@@ -170,10 +151,7 @@ class CameraService {
         context: Context,
         navController: NavHostController,
         photoViewModel: PhotoViewModel,
-        boxPosition: IntOffset?,
-        boxWidth: Int,
-
-        ) {
+    ) {
 //        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
 //        val name = "JPEG_" + timestamp + "_"
 //        val contentValues = ContentValues().apply {
@@ -206,9 +184,8 @@ class CameraService {
                             uri,
                             photoViewModel,
                             context,
-                            boxWidth,
-                            boxPosition,
-                        )
+
+                            )
                         navController.popBackStack()
                     }
                 }
@@ -225,8 +202,7 @@ class CameraService {
         uri: Uri,
         photoViewModel: PhotoViewModel,
         context: Context,
-        boxWidth: Int,
-        boxPosition: IntOffset?,
+
 
         ) {
 
@@ -235,12 +211,14 @@ class CameraService {
             val orginalbitmap = BitmapFactory.decodeStream(inputStream)
 
             val rotatedBitmap = rotateBitmap(orginalbitmap, 90f)
-            val cropWidth = rotatedBitmap.width - (rotatedBitmap.width / 20)
+            val bitmapWidgth = rotatedBitmap.width
+            val bitmapHeight = rotatedBitmap.height
+            val cropWidth = bitmapWidgth - (bitmapWidgth / 20)
             val croppedBitmap =
                 Bitmap.createBitmap(
                     rotatedBitmap,
-                    boxPosition!!.x,
-                    boxPosition.y,
+                    (bitmapWidgth / 20),
+                    ((bitmapHeight / 2) - (cropWidth / 3)),
                     cropWidth,
                     (cropWidth / 1.5).toInt()
                 )

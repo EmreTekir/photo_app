@@ -123,7 +123,7 @@ class MainActivity : ComponentActivity() {
                             contentDescription = null,
                         )
                         Spacer(Modifier.height(10.dp))
-                        Text(photoBs64, fontSize = 10.sp)
+                        //  Text(photoBs64, fontSize = 10.sp)
                     }
                 }
             }
