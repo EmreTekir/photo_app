@@ -81,7 +81,7 @@ class CameraService {
 
             Box(
                 Modifier
-                   Modifier.width(screenWidth * 0.9)
+                    .fillMaxWidth()
                     .height((screenHeight * 0.8).dp)
                     .align(Alignment.Center)
             ) {
