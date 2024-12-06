@@ -14,8 +14,8 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,7 +46,6 @@ import androidx.navigation.NavHostController
 import com.example.photo_app.PhotoHelper.Companion.createImageFile
 import java.io.FileOutputStream
 import java.util.Objects
-import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -81,15 +80,23 @@ class CameraService {
 
             Box(
                 Modifier
-                    .fillMaxWidth()
-                    .height((screenHeight * 0.8).dp)
+                    .fillMaxSize()
+                    .aspectRatio(9f / 16f)
                     .align(Alignment.Center)
             ) {
-                AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+                AndroidView(
+                    factory = { context ->
+                        previewView.apply {
+                            scaleType = PreviewView.ScaleType.FIT_CENTER
+                        }
+                    },
+                    modifier = Modifier.matchParentSize()
+                )
                 Box(
                     modifier = Modifier
                         .width(screenWidthWithPadding.dp)
-                        .height((screenWidthWithPadding / 1.8).dp)
+                        .height((screenWidthWithPadding / 1.5).dp)
+                        .aspectRatio(86f / 56f)
                         .border(2.dp, Color.White)
                         .align(Alignment.Center)
                         .onGloballyPositioned { coordinates ->
@@ -176,42 +183,41 @@ class CameraService {
 //                put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/CameraX-Image")
 //            }
 //        }
-        val executor = Executors.newSingleThreadExecutor()
-        executor.execute {
-            val file = context.createImageFile()
-            val uri = FileProvider.getUriForFile(
-                Objects.requireNonNull(context),
-                "${context.packageName}.provider", file
-            )
 
-            val outputOptions = ImageCapture.OutputFileOptions.Builder(
-                file
-            ).build()
-            imageCapture.takePicture(
-                outputOptions,
-                ContextCompat.getMainExecutor(context),
-                object : ImageCapture.OnImageSavedCallback {
-                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
 
-                        if (outputFileResults.savedUri != null) {
-                            println("succes")
-                            onCaptureSucces(
-                                uri,
-                                photoViewModel,
-                                context,
-                                boxWidth,
-                                boxPosition,
+        val file = context.createImageFile()
+        val uri = FileProvider.getUriForFile(
+            Objects.requireNonNull(context),
+            "${context.packageName}.provider", file
+        )
 
-                                )
-                            navController.popBackStack()
-                        }
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(
+            file
+        ).build()
+        imageCapture.takePicture(
+            outputOptions,
+            ContextCompat.getMainExecutor(context),
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+
+                    if (outputFileResults.savedUri != null) {
+                        println("succes")
+                        onCaptureSucces(
+                            uri,
+                            photoViewModel,
+                            context,
+                            boxWidth,
+                            boxPosition,
+                        )
+                        navController.popBackStack()
                     }
+                }
 
-                    override fun onError(exception: ImageCaptureException) {
-                        println("failed : " + exception.message)
-                    }
-                })
-        }
+                override fun onError(exception: ImageCaptureException) {
+                    println("failed : " + exception.message)
+                }
+            })
+
 
     }
 
@@ -223,29 +229,35 @@ class CameraService {
         boxPosition: IntOffset?,
 
         ) {
-        val inputStream = context.contentResolver.openInputStream(uri)
-        val orginalbitmap = BitmapFactory.decodeStream(inputStream)
 
-        val rotatedBitmap = rotateBitmap(orginalbitmap, 90f)
-        val cropWidth = rotatedBitmap.width - (rotatedBitmap.width / 20)
-        val croppedBitmap =
-            Bitmap.createBitmap(
-                rotatedBitmap,
-                boxPosition!!.x,
-                boxPosition.y,
-                cropWidth,
-                (cropWidth / 1.8).toInt()
-            )
+        try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val orginalbitmap = BitmapFactory.decodeStream(inputStream)
+
+            val rotatedBitmap = rotateBitmap(orginalbitmap, 90f)
+            val cropWidth = rotatedBitmap.width - (rotatedBitmap.width / 20)
+            val croppedBitmap =
+                Bitmap.createBitmap(
+                    rotatedBitmap,
+                    boxPosition!!.x,
+                    boxPosition.y,
+                    cropWidth,
+                    (cropWidth / 1.5).toInt()
+                )
 
 
-        val file = context.createImageFile()
-        file.createNewFile()
-        val outputStream = FileOutputStream(file)
-        croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-        outputStream.flush()
-        outputStream.close()
-        photoViewModel.updatePhotoUri(Uri.fromFile(file))
-        photoViewModel.updatePhotoBase64(croppedBitmap, context)
+            val file = context.createImageFile()
+            file.createNewFile()
+            val outputStream = FileOutputStream(file)
+            croppedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            outputStream.flush()
+            outputStream.close()
+            photoViewModel.updatePhotoUri(Uri.fromFile(file))
+            photoViewModel.updatePhotoBase64(croppedBitmap, context)
+            println("Fotoğraf başarıyla işlendi")
+        } catch (e: Exception) {
+            println("Hata : ${e.message}")
+        }
     }
 
     private fun rotateBitmap(bitmap: Bitmap, rotation: Float): Bitmap {

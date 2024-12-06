@@ -1,6 +1,8 @@
 package com.example.photo_app
 
 import android.Manifest
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
@@ -51,6 +53,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+            val context = LocalContext.current
+            (context as? Activity)?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
             val navController = rememberNavController()
             NavHost(navController = navController, startDestination = "main") {
                 composable("main") { App(navController) }
